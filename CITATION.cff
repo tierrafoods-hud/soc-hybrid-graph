@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "soc-hybrid-graph: machine learning, spatial graph neural networks and Bayesian networks for explainable soil organic carbon assessment"
+license: MIT
+repository-code: "https://github.com/tierrafoods-hud/soc-hybrid-graph"
+authors:
+  - family-names: Papadakis
+    given-names: Emmanuel
+    affiliation: University of Huddersfield
+  - family-names: Mallik
+    given-names: Gulger
+    affiliation: University of Huddersfield
+  - family-names: Ibrahim
+    given-names: Ahmed Aman
+    affiliation: University of Huddersfield
+  - family-names: Baryannis
+    given-names: George
+    affiliation: University of Huddersfield
+  - family-names: Altinalmazis-Kondylis
+    given-names: Andreas
+    affiliation: Tierrasphere

@@ -1,0 +1,20 @@
+# Python 3.11-3.13. Install with: pip install -r requirements.txt
+# Random Forest models (src/rf_models.py)
+numpy==2.2.6
+pandas==2.2.3
+scikit-learn==1.6.1
+matplotlib==3.10.0
+
+# Bayesian network notebook
+pgmpy==0.1.26
+networkx>=3.2
+seaborn==0.13.2
+
+# GNN notebook (CPU builds are sufficient). If the PyTorch install fails, follow
+# https://pytorch.org/get-started/locally/ and install torch first.
+torch>=2.2
+torch_geometric>=2.5
+plotly>=5.20
+
+# Running the notebooks
+jupyterlab>=4.0
