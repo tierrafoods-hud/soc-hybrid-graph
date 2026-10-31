@@ -1,0 +1,9 @@
+cluster,landcover,bedrock,soil_type,ecoregion
+0,17.0,rocas_sedimentarias,XEROSOL HAPLICO,5.0
+1,9.0,rocas_sedimentarias,REGOSOL EUTRICO,4.0
+2,10.0,rocas_sedimentarias,REGOSOL EUTRICO,1.0
+3,8.0,rocas_sedimentarias,VERTISOL PELICO,1.0
+4,9.0,rocas_igneas,REGOSOL EUTRICO,4.0
+5,10.0,rocas_sedimentarias,XEROSOL CALCICO,5.0
+6,7.0,rocas_sedimentarias,REGOSOL EUTRICO,5.0
+7,9.0,rocas_igneas,REGOSOL EUTRICO,4.0

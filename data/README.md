@@ -31,8 +31,9 @@ Section 3.2 of the paper gives the full references.
 |---|---|---|---|
 | `Mexico_standardized_cfvo_orgc.csv` | 10,016 | 3,326 | `orgc`: organic carbon (g/kg) |
 | `Mexico_standardized_cfvo_tceq.csv` | 5,635 | 1,872 | `tceq`: calcium carbonate equivalent, total (g/kg) |
+| `Mexico_single_depth_orgc_merged.csv` | 3,308 | 3,308 | `orgc` for a single harmonised 0–30 cm layer (deep learning model) |
 
-Each row is one harmonised depth layer (`depth_category` = `0_5`, `5_15` or `15_30` cm) of one soil
+In the first two files, each row is one harmonised depth layer (`depth_category` = `0_5`, `5_15` or `15_30` cm) of one soil
 profile (`profile_id`). Rows with missing values are removed by the modelling scripts, which leaves
 6,024 rows / 2,002 profiles (ORGC) and 3,898 rows / 1,297 profiles (TCEQ).
 
@@ -46,7 +47,7 @@ profile (`profile_id`). Rows with missing values are removed by the modelling sc
 | `elcosp` | electrical conductivity of saturated paste (ORGC file only) | dS/m |
 | `phaq` | pH in water | – |
 | `orgc` / `tceq` | target property | g/kg |
-| `soil_type` | soil classification (FAO 1974 legend, Spanish names) | – |
+| `soil_type` | soil unit name (Spanish), as in the source data | – |
 | `slopemean` | mean terrain slope at the profile location | as in source layer |
 | `bedrock` | bedrock type | – |
 | `cfr` | coarse fragments | % volume |
@@ -54,12 +55,16 @@ profile (`profile_id`). Rows with missing values are removed by the modelling sc
 | `ecoregion_type`, `zone_number`, `zone_name` | CONABIO biotic region | – |
 | `landcover` | MODIS IGBP land-cover class | – |
 
+`src/dl_model.py` uses only `profile_id`, `clay`, `sand`, `silt`, `phaq` and `orgc` from
+`Mexico_single_depth_orgc_merged.csv`. `data/mexico.geojson` (state boundaries, taken from the
+`tierrafoods-hud/application` repository) is used only to draw the cluster map.
+
 ## Regenerating the processed files
 
 1. Download the WoSIS snapshot from the link above and extract the layer and profile tables for Mexico.
-2. Harmonise depths with `r/ea_spline_generator.R` (see `docs/TUTORIAL.md`, step 4).
-3. Attach the climate, land-cover and ecoregion covariates by spatial join on the profile coordinates.
-   The original scripts for this step are in
-   [tierrafoods-hud/notebooks](https://github.com/tierrafoods-hud/notebooks) (`wosis-preprocessor.ipynb`,
-   `soil-depth-standardization.ipynb`) and
-   [tierrafoods-hud/nasa_landcover](https://github.com/tierrafoods-hud/nasa_landcover).
+2. Harmonise depths with `r/ea_spline_generator.R` (see `docs/TUTORIAL.md`, step 6).
+3. Attach the covariates by spatial join on the profile coordinates. The land-cover extraction
+   (MODIS MCD12Q1, `LC_Type1`) is in
+   [tierrafoods-hud/nasa_landcover](https://github.com/tierrafoods-hud/nasa_landcover). The extraction
+   scripts for the climate, ecoregion and slope covariates are not included. Their values are
+   provided in the processed files above, so all reported results can be reproduced from this repository.

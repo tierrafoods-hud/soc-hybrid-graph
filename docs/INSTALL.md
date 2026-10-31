@@ -1,8 +1,8 @@
 # Installation
 
-## Python (required)
+## Python
 
-Python 3.11, 3.12 or 3.13.
+Tested with Python 3.13.
 
 ```bash
 python -m venv .venv
@@ -11,43 +11,37 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-`src/rf_models.py` needs only `numpy`, `pandas`, `scikit-learn` and `matplotlib`. To run just the
-Random Forest models on a machine where PyTorch cannot be installed:
+Each script needs only part of the requirements:
 
-```bash
-pip install numpy==2.2.6 pandas==2.2.3 scikit-learn==1.6.1 matplotlib==3.10.0
-```
+| Script | Packages |
+|---|---|
+| `rf_models.py` | numpy, pandas, scikit-learn, matplotlib |
+| `bn_profiles.py` | + pgmpy, networkx |
+| `gnn_embedding.py` | + torch, torch_geometric |
+| `dl_model.py` | + tensorflow |
 
-### PyTorch and PyTorch Geometric
+### PyTorch
 
-The GNN notebook needs `torch` and `torch_geometric`. A CPU build is enough. If
-`pip install -r requirements.txt` fails on `torch`, install it first using the selector at
-<https://pytorch.org/get-started/locally/>, then run `pip install torch_geometric`.
-
-Check the installation:
-
-```bash
-python -c "import torch, torch_geometric; print(torch.__version__, torch_geometric.__version__)"
-```
+A CPU build of PyTorch is enough. If `pip install -r requirements.txt` fails on `torch`, install it
+first using the selector at <https://pytorch.org/get-started/locally/>, then rerun the command.
 
 ## R (optional: depth harmonisation only)
 
 The harmonised datasets are already in `data/processed/`. R is only needed to regenerate them from
-raw WoSIS layers.
-
-- R ≥ 4.2
-- The `ithir` package, which is distributed from GitHub rather than CRAN. Follow the instructions at
-  <https://github.com/brendo1001/ithir>.
+raw WoSIS layers. It needs the `ithir` package, which is distributed from GitHub rather than CRAN.
+Follow the instructions at <https://github.com/brendo1001/ithir>.
 
 ## Tested environment
 
 | Component | Version |
 |---|---|
-| OS | Linux (Ubuntu) |
+| OS | Linux (Ubuntu 24.04) |
 | Python | 3.13 |
-| scikit-learn | 1.6.1 |
-| pandas | 2.2.3 |
+| scikit-learn / pandas / numpy | 1.6.1 / 2.2.3 / 2.2.6 |
 | pgmpy | 0.1.26 |
+| torch / torch_geometric | 2.7.1 / 2.8.1 |
+| tensorflow | 2.21.0 |
 | Hardware | 2 CPU cores, no GPU |
 
-`src/rf_models.py --cv` runs in about 3–4 minutes on this hardware (under 1 minute without `--cv`).
+Approximate run times on this hardware: `rf_models.py` under 1 minute (3–4 minutes with `--cv`),
+`dl_model.py`, `gnn_embedding.py` and `bn_profiles.py` under 1 minute each. `--compare` adds about 1 minute.

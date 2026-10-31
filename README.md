@@ -13,31 +13,34 @@ The framework combines:
    mass-preserving equal-area quadratic splines (R, `ithir`).
 2. **Random Forest** models for organic carbon (ORGC) and calcium carbonate equivalent (TCEQ),
    as concentrations (g/kg) and stocks (t/ha), evaluated with a **profile-grouped** train/test split.
-3. A **graph convolutional network** trained with a self-supervised triplet loss on a 10 km
-   proximity graph of soil profiles, followed by K-Means clustering into soil archetypes.
-4. A **Bayesian network** (pgmpy) used to profile the environmental conditions associated with
+3. An exploratory **deep learning** model for ORGC concentration.
+4. A **graph convolutional network** trained with a self-supervised triplet loss on a 10 km
+   proximity graph of profile layers (carbon withheld from the inputs), followed by K-Means
+   clustering into soil archetypes.
+5. A **Bayesian network** (pgmpy) that profiles the environmental conditions associated with
    high and low organic carbon.
 
 | | |
 |---|---|
 | Developers | Emmanuel Papadakis, Gulger Mallik, Ahmed Aman Ibrahim (University of Huddersfield) |
 | Contact | George Baryannis, g.bargiannis@hud.ac.uk |
-| Languages | Python 3.11–3.13; R ≥ 4.2 (depth harmonisation only) |
-| Hardware | Standard desktop or laptop (tested on 2 CPU cores). No GPU needed. |
+| Languages | Python 3 (tested with 3.13); R with `ithir` (depth harmonisation only) |
+| Hardware | Standard desktop or laptop CPU (tested on 2 cores). No GPU needed. |
 | Licence | Code: MIT ([LICENSE](LICENSE)). Data: WoSIS terms, see [data/README.md](data/README.md) |
 
 ## Repository layout
 
 ```
-data/processed/      harmonised WoSIS-Mexico datasets used in the paper (see data/README.md)
-src/rf_models.py     Random Forest models: Table 1, Figures 3-4
-notebooks/
-  dataset.py                          shared input table for the graph notebooks
-  01_gnn_soil_embedding.ipynb         GCN embeddings + K-Means clusters: Figure 7, Tables 2-3
-  02_bayesian_network_profiles.ipynb  Bayesian network profiles: Table 4
+data/processed/        harmonised WoSIS-Mexico datasets used in the paper (see data/README.md)
+data/mexico.geojson    state boundaries used for the cluster map
+src/dataset.py         shared input table for the graph-based components
+src/rf_models.py       Random Forest models          -> Table 1, Figures 3-4
+src/dl_model.py        exploratory deep learning     -> Figures 5-6
+src/gnn_embedding.py   GCN embeddings + K-Means       -> Figure 7, Tables 2-3
+src/bn_profiles.py     Bayesian network profiles     -> Table 4
 r/ea_spline_generator.R  equal-area spline depth harmonisation (Section 3.2)
-outputs/             results written by the scripts (reference copies included)
-docs/                INSTALL.md, TUTORIAL.md, USER_GUIDE.md
+outputs/               reference results written by the scripts
+docs/                  INSTALL.md, TUTORIAL.md, USER_GUIDE.md
 ```
 
 ## Quick start
@@ -49,39 +52,45 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-python src/rf_models.py --cv       # Table 1 and Figures 3-4, a few minutes on a laptop
+python src/rf_models.py --cv --compare   # Table 1, Figures 3-4, model comparison
+python src/dl_model.py                   # Figures 5-6
+python src/gnn_embedding.py              # Figure 7, Tables 2-3
+python src/bn_profiles.py                # Table 4
 ```
 
-The metrics are written to `outputs/rf/grouped/rf_metrics.csv` and the figures to
-`outputs/rf/grouped/*.pdf`. Then open the notebooks in `notebooks/` with Jupyter to reproduce
-the graph-based results. See [docs/TUTORIAL.md](docs/TUTORIAL.md) for a step-by-step walkthrough.
+See [docs/TUTORIAL.md](docs/TUTORIAL.md) for a step-by-step walkthrough.
 
 ## Reproducing the paper
 
-| Paper item | Command / file | Output |
+| Paper item | Command | Output |
 |---|---|---|
-| Table 1, Figures 3–4 (Random Forest) | `python src/rf_models.py` | `outputs/rf/grouped/` |
-| Figure 7, Tables 2–3 (GNN soil archetypes) | `notebooks/01_gnn_soil_embedding.ipynb` | notebook outputs, `cluster_statistics.csv` |
-| Table 4 (Bayesian network profiles) | `notebooks/02_bayesian_network_profiles.ipynb` | notebook outputs |
-| Depth harmonisation (Section 3.2) | `Rscript r/ea_spline_generator.R <in.csv> <out_dir>` | `<feature>_harmonized.csv` |
+| Table 1, Figures 3–4 | `python src/rf_models.py` | `outputs/rf/grouped/` |
+| Model comparison (Section 3.3) | `python src/rf_models.py --compare` | `outputs/rf/grouped/model_comparison.csv` |
+| Cross-validation and leakage comparison (Section 5.1) | `--cv`, and `--split random` | `outputs/rf/` |
+| Figures 5–6 (deep learning) | `python src/dl_model.py` | `outputs/dl/` |
+| Figure 7, Tables 2–3 (soil archetypes) | `python src/gnn_embedding.py` | `outputs/gnn/carbon_excluded/` |
+| Table 4 (Bayesian network profiles) | `python src/bn_profiles.py` | `outputs/bn/` |
+| Depth harmonisation (Section 3.2) | `Rscript r/ea_spline_generator.R <in.csv> <out_dir>` | `<property>_harmonized.csv` |
 
-Reference results with the default settings (seed 42, 80/20 split grouped by `profile_id`, so
-no profile appears in both the training and the test sets):
+All random seeds are fixed (42). Repeated runs on the same software versions give identical
+results. Different library versions or hardware can change the GNN and deep learning results slightly.
 
-| Task | Unit | RMSE | MAE | R² |
-|---|---|---|---|---|
-| ORGC | g/kg | 12.52 | 7.10 | 0.38 |
-| TCEQ | g/kg | 123.67 | 59.91 | 0.46 |
-| ORGC stock | t/ha | 9.76 | 6.60 | 0.47 |
-| TCEQ stock | t/ha | 169.97 | 78.00 | 0.46 |
+Reference Random Forest results (80/20 split grouped by `profile_id`, so no profile is in both
+the training and test sets):
 
-`python src/rf_models.py --split random` reproduces the original row-level split, in which
-depth layers of the same profile can be in both sets. It is included only to show the
-optimistic bias of that set-up and was not used for the reported results.
+| Task | Unit | MSE | RMSE | MAE | R² |
+|---|---|---|---|---|---|
+| ORGC | g/kg | 156.87 | 12.52 | 7.10 | 0.38 |
+| TCEQ | g/kg | 15294.82 | 123.67 | 59.91 | 0.46 |
+| ORGC stock | t/ha | 95.17 | 9.76 | 6.60 | 0.47 |
+| TCEQ stock | t/ha | 28891.41 | 169.97 | 78.00 | 0.46 |
+
+`--split random` reproduces the original row-level split, in which depth layers of the same profile
+can be in both sets. It is included only to show the optimistic bias of that set-up (R² 0.60–0.82).
 
 ## Related repositories
 
-The development history (data selection, covariate extraction, exploratory models and the
+The development history (data selection, covariate extraction, exploratory notebooks and the
 Streamlit prototype) is in the other repositories of the
 [tierrafoods-hud](https://github.com/tierrafoods-hud) organisation:
 `notebooks`, `application`, `causal_graph`, `knowledge_graph`, `nasa_landcover`, `grids_mexico`.

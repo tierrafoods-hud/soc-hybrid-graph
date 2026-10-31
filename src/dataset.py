@@ -1,4 +1,4 @@
-"""Shared input table for the graph-based notebooks (GNN embedding and Bayesian network).
+"""Shared input table for the graph-based components (gnn_embedding.py, bn_profiles.py).
 
 Merges the harmonised organic carbon (orgc) and calcium carbonate equivalent
 (tceq, used here as inorganic carbon) datasets on profile, depth layer and date.

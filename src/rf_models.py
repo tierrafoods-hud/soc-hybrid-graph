@@ -14,6 +14,7 @@ Usage
 -----
     python src/rf_models.py                      # all four tasks, grouped split
     python src/rf_models.py --cv                 # + 5-fold profile-grouped cross-validation
+    python src/rf_models.py --compare            # + comparison with GB, linear, MLP and SVR models
     python src/rf_models.py --split random       # original row-level split
 """
 
@@ -30,7 +31,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.neural_network import MLPRegressor
+from sklearn.svm import SVR
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold, GroupShuffleSplit, train_test_split
@@ -103,7 +107,18 @@ def split(df: pd.DataFrame, how: str):
     return train, test
 
 
-def build_model(numeric: list[str], categorical: list[str]) -> Pipeline:
+def regressors() -> dict:
+    """Candidate models compared during development (same settings as the original notebooks)."""
+    return {
+        "Random Forest": RandomForestRegressor(n_estimators=100, random_state=SEED),
+        "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=SEED),
+        "Linear Regression": LinearRegression(),
+        "MLP Regressor": MLPRegressor(hidden_layer_sizes=(2, 2), max_iter=1000, random_state=SEED),
+        "SVR": SVR(kernel="poly"),
+    }
+
+
+def build_model(numeric: list[str], categorical: list[str], regressor=None) -> Pipeline:
     pre = ColumnTransformer([
         ("num", Pipeline([("imputer", SimpleImputer(strategy="mean")),
                           ("scaler", StandardScaler())]), numeric),
@@ -111,7 +126,8 @@ def build_model(numeric: list[str], categorical: list[str]) -> Pipeline:
                           ("onehot", OneHotEncoder(handle_unknown="ignore"))]), categorical),
     ])
     return Pipeline([("preprocessor", pre),
-                     ("regressor", RandomForestRegressor(n_estimators=100, random_state=SEED))])
+                     ("regressor", regressor if regressor is not None
+                      else RandomForestRegressor(n_estimators=100, random_state=SEED))])
 
 
 def plot(y_true, y_pred, target: str, unit: str, stats: dict, path: Path) -> None:
@@ -144,6 +160,27 @@ def cross_validate(df: pd.DataFrame, y_col: str, numeric: list[str], categorical
         scores["MAE"].append(mean_absolute_error(test[y_col], pred))
         scores["R2"].append(r2_score(test[y_col], pred))
     return {f"cv_{k}_{f}": float(getattr(np, f)(v)) for k, v in scores.items() for f in ("mean", "std")}
+
+
+def compare_models(name: str, how: str) -> list[dict]:
+    """Test-set R2/RMSE of all candidate models on the same split (model selection check)."""
+    target, unit, to_stock = TASKS[name]
+    df = load_and_preprocess(target)
+    y_col = target
+    if to_stock:
+        df, y_col = add_stock(df, target)
+    numeric = [c for c in NUMERIC_FEATURES if c in df.columns]
+    categorical = [c for c in CATEGORICAL_FEATURES if c in df.columns]
+    train, test = split(df, how)
+    rows = [{"task": name, "model": "Baseline (training mean)", "RMSE": float(np.sqrt(mean_squared_error(
+        test[y_col], np.full(len(test), train[y_col].mean())))), "R2": r2_score(
+        test[y_col], np.full(len(test), train[y_col].mean()))}]
+    for label, reg in regressors().items():
+        pred = build_model(numeric, categorical, reg).fit(train[numeric + categorical], train[y_col]) \
+            .predict(test[numeric + categorical])
+        rows.append({"task": name, "model": label, "RMSE": float(np.sqrt(mean_squared_error(test[y_col], pred))),
+                     "R2": r2_score(test[y_col], pred)})
+    return rows
 
 
 def run_task(name: str, how: str, cv: bool = False) -> dict:
@@ -182,6 +219,8 @@ def main() -> None:
     parser.add_argument("--split", choices=["grouped", "random"], default="grouped")
     parser.add_argument("--cv", action="store_true",
                         help="also report 5-fold profile-grouped cross-validation (grouped split only)")
+    parser.add_argument("--compare", action="store_true",
+                        help="also compare Random Forest with the other candidate models")
     parser.add_argument("--tasks", nargs="+", choices=list(TASKS), default=list(TASKS))
     args = parser.parse_args()
 
@@ -195,6 +234,11 @@ def main() -> None:
                      "MSE", "RMSE", "MAE", "R2"]].round(4).to_string(index=False))
         if args.cv and args.split == "grouped":
             print(table[["task"] + [c for c in table.columns if c.startswith("cv_")]].round(3).to_string(index=False))
+
+    if args.compare:
+        comp = pd.DataFrame([r for t in args.tasks for r in compare_models(t, args.split)])
+        comp.to_csv(out / "model_comparison.csv", index=False)
+        print(comp.pivot(index="model", columns="task", values="R2").round(3).to_string())
 
 
 if __name__ == "__main__":
